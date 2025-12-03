@@ -1,5 +1,0 @@
-CompileFlags:
-  Remove: ["-Wall", "-Wextra"]
-  Add: []
-Index:
-  Disabled: true

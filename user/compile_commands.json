@@ -1,0 +1,15 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-I/usr/include/libnl3",
+      "-o",
+      "user",
+      "main.c"
+    ],
+    "directory": "/home/willy/projects/wireless/user",
+    "file": "/home/willy/projects/wireless/user/main.c",
+    "output": "/home/willy/projects/wireless/user/user"
+  }
+]

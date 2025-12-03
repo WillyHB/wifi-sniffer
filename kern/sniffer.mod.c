@@ -15,6 +15,6 @@ __section(".gnu.linkonce.this_module") = {
 };
 
 
-MODULE_INFO(depends, "");
+MODULE_INFO(depends, "cfg80211");
 
 MODULE_INFO(rhelversion, "10.99");
