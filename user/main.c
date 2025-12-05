@@ -1,7 +1,6 @@
-#include <linux/netlink.h>
 #include <stdint.h>
+#include <linux/netlink.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include "../common/common.h"
@@ -35,20 +34,58 @@ void handle_wifi_info(struct wifi_frame_info *info);
 
 int main() {
 	struct nl_sock *sock = nl_socket_alloc();
+	if (sock == NULL) {
+		fprintf(stderr, "Socket allocation failed\n");
+		return 1;
+	}
 
-	genl_connect(sock);
+	if (genl_connect(sock) < 0) {
+		fprintf(stderr, "Socket connection failed\n");
+		return 1;
+	}
 	
+	/*
 	int family = genl_ctrl_resolve(sock, WIFI_FAMILY_NAME);
-	nl_socket_add_membership(sock, WIFI_MCGRP_FRAMES); 
-	nl_socket_modify_cb(sock, NL_CB_VALID, NL_CB_CUSTOM, frame_handler, NULL);
+	if (family < 0) {
+		fprintf(stderr, "Resolving netlink family failed\n");
+		nl_socket_free(sock);
+		return 1;
+	}
+	*/
+
+	int mcgrp = genl_ctrl_resolve_grp(sock, WIFI_FAMILY_NAME, WIFI_MCGRP_NAME);
+	if (mcgrp < 0) {
+		fprintf(stderr, "Resolving netlink family failed\n");
+		nl_socket_free(sock);
+		return 1;
+	}
+
+	if (nl_socket_add_membership(sock, mcgrp)) {
+		fprintf(stderr, "Adding family membership to socket failed\n");
+		return 1;
+	}
+	
+	if (nl_socket_modify_cb(sock, NL_CB_VALID, NL_CB_CUSTOM, frame_handler, NULL) < 0) {
+		fprintf(stderr, "Socket callback modification failed\n");
+		nl_socket_free(sock);
+		return 1;
+	}
+
+	nl_socket_disable_seq_check(sock);
 
 	while (1) {
-		nl_recvmsgs_default(sock);
+		int ret = nl_recvmsgs_default(sock);
+		if (ret) {
+			fprintf(stderr, "Netlink message receive error (code:%d)\n", ret);
+		}
 	}
+
+	nl_close(sock);
 	nl_socket_free(sock);
 }
 
 static int frame_handler(struct nl_msg *msg, void *arg) {
+	puts("Test");
 	struct nlmsghdr *hdr = nlmsg_hdr(msg);
 	struct genlmsghdr *ghdr = nlmsg_data(hdr);
 	struct nlattr *attrs[WIFI_ATTR_MAX+1];

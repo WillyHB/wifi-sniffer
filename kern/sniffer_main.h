@@ -7,24 +7,6 @@
 #include "net/ieee80211_radiotap.h"
 #include "../common/common.h"
 
-struct radiotap_info {
-	int8_t rssi;
-	u16 channel_freq;
-	u16 channel_flags;
-};
-
-struct wifi_frame_info {
-	struct radiotap_info rt_info;
-
-	u8 src_mac[6];
-	u8 dst_mac[6];
-	u8 bssid[6];
-
-	u8 frame_t;
-	u8 frame_st;
-
-	u16 len;
-};
 
 int mywifi_open(struct net_device *dev);
 int mywifi_close(struct net_device *dev);
@@ -40,7 +22,6 @@ struct SNIFFER_PRIV {
 	int dummy;
 };
 
-void send_to_userspace(struct wifi_frame_info *info);
 int sniffer_init(void);
 void sniffer_clean(void);
 void mywifi_dev_init(struct net_device *dev);

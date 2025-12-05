@@ -1,9 +1,8 @@
 #include <linux/module.h>
 #include <linux/byteorder/generic.h>
 #include <linux/ip.h>
-#include "linux/netlink.h"
-#include "linux/printk.h"
-#include "linux/rtnetlink.h"
+#include <linux/printk.h>
+#include <linux/rtnetlink.h>
 #include <linux/kernel.h>
 #include <linux/netdevice.h>
 #include <linux/etherdevice.h>
@@ -13,10 +12,10 @@
 #include <net/cfg80211.h>
 #include <net/genetlink.h>
 #include <net/netlink.h>
-#include "sniffer.h"
+#include "sniffer_main.h"
 #include "sniffer_netlink.h"
 
-// Good To Remember:
+// Good to remember:
 // STA: Station which participates in an 802.11 network (laptop, phone, even AP)
 // BSS: Group of STAs which can talk to each other under a single AP
 // BSSID: The unique MAC Address which identifies a BSS (Usually the APs MAC address)
@@ -42,6 +41,7 @@ void mywifi_dev_init(struct net_device *dev) {
 int sniffer_init(void) {
 	printk(KERN_INFO "Sniffer loaded!\n");
 
+	/*
 	mydev = alloc_netdev(
 		sizeof(struct SNIFFER_PRIV), 
 		"mywifi%d", 
@@ -58,28 +58,30 @@ int sniffer_init(void) {
         free_netdev(mydev);
 		return -1;
 	}
+	*/
 
 	real_dev = dev_get_by_name(&init_net, "mon0");
 
 	if (!real_dev) {
 		printk(KERN_ERR "Net Device %s not found", "mon0");
-		unregister_netdevice(mydev);
-		free_netdev(mydev);
+		//unregister_netdevice(mydev);
+		//free_netdev(mydev);
 		return -1;
 	}
 
 	rtnl_lock();
-	int ret = netdev_rx_handler_register(real_dev, mywifi_rx_handler, mydev);
+	int ret = netdev_rx_handler_register(real_dev, mywifi_rx_handler, /*mydev*/ NULL);
 	rtnl_unlock();
 
 	if (ret) {
 		printk(KERN_ERR "Failed to register RX handler\n");
 		dev_put(real_dev);
-		unregister_netdev(mydev);
-		free_netdev(mydev);
+		//unregister_netdev(mydev);
+		//free_netdev(mydev);
 		return ret;
 	}
 
+	init_genl_family();
     printk(KERN_INFO "Netdevice registered successfully\n");
 	return 0;
 }
@@ -156,35 +158,6 @@ rx_handler_result_t mywifi_rx_handler(struct sk_buff **pskb) {
 	return RX_HANDLER_PASS;
 }
 
-void send_to_userspace(struct wifi_frame_info *info) {
-	struct sk_buff *skb;
-	static u32 seq = 0;
-	size_t info_size = sizeof(struct wifi_frame_info);
-	void *msg_head;
-
-	skb = genlmsg_new(NLMSG_GOODSIZE, GFP_ATOMIC);
-	if (skb == NULL) {
-		printk(KERN_ERR "Error Allocating Netlink Message Buffer");
-		return;
-	}
-
-	msg_head = genlmsg_put(skb, 0, seq++, &wifi_genl_family, 0, WIFI_SNIF_CMD_FRAME);
-	if (msg_head == NULL) {
-		printk(KERN_ERR "Error Creating Netlink Message Payload");
-		kfree_skb(skb);
-		return;
-	}
-
-	if (nla_put(skb, WIFI_ATTR_FRAME, info_size, info)) {
-		printk(KERN_ERR "Error with nla_put\n");
-		genlmsg_cancel(skb, msg_head);
-		kfree_skb(skb);
-	}
-
-	genlmsg_end(skb, msg_head);
-	genlmsg_multicast(&wifi_genl_family, skb, 0, WIFI_MCGRP_FRAMES, GFP_ATOMIC);
-}
-
 void sniffer_clean(void) {
 	if (real_dev) {
 		rtnl_lock();
@@ -192,6 +165,8 @@ void sniffer_clean(void) {
 		rtnl_unlock();
 		dev_put(real_dev);
 	}
+
+	free_genl_family();
 
 	if (mydev) {
 		unregister_netdev(mydev);
@@ -221,3 +196,4 @@ module_exit(sniffer_clean);
 MODULE_AUTHOR("William Hansen-Baird");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("A small project experimenting with WiFi packet sniffing :)");
+MODULE_VERSION("1.0");

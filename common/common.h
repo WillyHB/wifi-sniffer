@@ -10,6 +10,8 @@ enum {
 };
 
 #define WIFI_FAMILY_NAME "wifi_sniffer"
+#define WIFI_MCGRP_NAME "wifi_frame"
+
 #define WIFI_SNIF_CMD_FRAME 1
 #define WIFI_MCGRP_FRAMES 0
 #define WIFI_ATTR_MAX (__WIFI_ATTR_MAX - 1)

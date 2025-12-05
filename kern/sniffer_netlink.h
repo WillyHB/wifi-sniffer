@@ -4,18 +4,27 @@
 #include "../common/common.h"
 #include <net/genetlink.h>
 
-
-static const struct genl_multicast_group wifi_mcgrps[N_WIFI_MCGRPS] = {
-	[WIFI_MCGRP_FRAMES] = { .name = "wifi_frames" }, // designated initializer (At index WIFI_MCGRP_FRAMES = { ... })
+struct radiotap_info {
+	int8_t rssi;
+	u16 channel_freq;
+	u16 channel_flags;
 };
 
-static struct genl_family wifi_genl_family = {
-	.name = WIFI_FAMILY_NAME,
-	.version = 1,
-	.maxattr = WIFI_ATTR_MAX,
-	.mcgrps = wifi_mcgrps,
-	.n_mcgrps = N_WIFI_MCGRPS,
+struct wifi_frame_info {
+	struct radiotap_info rt_info;
+
+	u8 src_mac[6];
+	u8 dst_mac[6];
+	u8 bssid[6];
+
+	u8 frame_t;
+	u8 frame_st;
+
+	u16 len;
 };
 
+void free_genl_family(void);
+void init_genl_family(void);
+void send_to_userspace(struct wifi_frame_info *info);
 #endif
 
