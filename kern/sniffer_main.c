@@ -89,16 +89,25 @@ int sniffer_init(void) {
 struct radiotap_info get_radiotap_info(struct ieee80211_radiotap_header *rt_hdr, u16 rt_len) {
 	struct ieee80211_radiotap_iterator iter = {0};
 	int ret = ieee80211_radiotap_iterator_init(&iter , rt_hdr , rt_len , NULL);
+	if (ret) {
+		pr_err("Radiotap iterator init failed\n");
+		return (struct radiotap_info){0};
+	}
 
 	struct radiotap_info info = {0};
 
 	while (!ret) {
 		ret = ieee80211_radiotap_iterator_next(&iter);
 		if (ret) continue;
+		if (iter.this_arg == NULL) continue;
+
+		pr_info("Arg index: %d\n", iter.this_arg_index);
 
 		switch (iter.this_arg_index) {
 			case IEEE80211_RADIOTAP_DB_ANTSIGNAL:
-				info.rssi = (int8_t)(*iter.this_arg);
+			case 20:
+				info.rssi = *(int8_t*)(iter.this_arg);
+				printk(KERN_INFO "Test, here! :) %d\n", *(int8_t*)(iter.this_arg));
 				break;
 			case IEEE80211_RADIOTAP_CHANNEL:
 				info.channel_freq = get_unaligned_le16(iter.this_arg);
@@ -110,51 +119,69 @@ struct radiotap_info get_radiotap_info(struct ieee80211_radiotap_header *rt_hdr,
 	return info;
 }
 
-void set_mac(struct ieee80211_hdr *hdr, u8 tods, u8 fromds, u8 dst[6], u8 src[6], u8 bssid[6]) {
+enum FRAME_DIRECTION parse_fromtods(struct ieee80211_hdr *hdr, u8 tods, u8 fromds, u8 dst[6], u8 src[6], u8 bssid[6]) {
 	if (tods == 0 && fromds == 0) { // Not going or coming from DS, so from a non AP STA
 		ether_addr_copy(dst, hdr->addr1);
 		ether_addr_copy(src, hdr->addr2);
 		ether_addr_copy(bssid, hdr->addr3);
+		return CLIENT_TO_CLIENT;
 	} else if (tods == 1 && fromds == 0) { // Data frame sent to DS by an STA through an AP
 		ether_addr_copy(dst, hdr->addr1);
 		ether_addr_copy(bssid, hdr->addr2);
 		ether_addr_copy(src, hdr->addr3);
+		return CLIENT_TO_AP;
 	} else if (tods == 0 && fromds == 1) { // Data frame exiting DS through AP to an STA
 		ether_addr_copy(bssid, hdr->addr1);
 		ether_addr_copy(src, hdr->addr2);
 		ether_addr_copy(dst, hdr->addr3);
+		return AP_TO_CLIENT;
 	} else if (tods == 1 && fromds == 1) { // STA forwards traffic - AP-to-AP traffic, wireless bridging
 		ether_addr_copy(dst, hdr->addr3);
 		ether_addr_copy(src, hdr->addr4);
+		return AP_TO_AP;
 	}
+
+	return 0;
 }
 
 rx_handler_result_t mywifi_rx_handler(struct sk_buff **pskb) {
 	struct sk_buff *skb = *pskb;
-	struct wifi_frame_info info;
+
+	struct hdr_info hdr_info;
+	struct radiotap_info rt_info;
+	struct body_info b_info;
+
 	struct ieee80211_radiotap_header *rt_hdr;
 	struct ieee80211_hdr *hdr;
 	u16 fc;
+	u16 hdr_len;
+	u16 rt_len;
 
 	rt_hdr = (struct ieee80211_radiotap_header*)skb->data;
-	u16 rt_len = le16_to_cpu(rt_hdr->it_len);
+	rt_len = le16_to_cpu(rt_hdr->it_len);
 	if (skb->len < rt_len)
 		return RX_HANDLER_PASS;
+	rt_info = get_radiotap_info(rt_hdr, rt_len);
 
-	info.rt_info = get_radiotap_info(rt_hdr, rt_len);
 	hdr = (struct ieee80211_hdr*)(skb->data+rt_len);
-
 	fc = le16_to_cpu(hdr->frame_control);
+	hdr_len = le16_to_cpu(ieee80211_hdrlen(fc));
 
-	info.frame_t = (fc & IEEE80211_FCTL_FTYPE) >> 2;
-	info.frame_st = (fc & IEEE80211_FCTL_STYPE) >> 4;
-
+	hdr_info.frame_t = (fc & IEEE80211_FCTL_FTYPE) >> 2;
+	hdr_info.frame_st = (fc & IEEE80211_FCTL_STYPE) >> 4;
+	hdr_info.retry = (fc & IEEE80211_FCTL_RETRY) >> 11;
 	u8 tods = (fc & IEEE80211_FCTL_TODS) >> 8;
 	u8 fromds = (fc & IEEE80211_FCTL_FROMDS) >> 9;
+	hdr_info.frame_d = parse_fromtods(hdr, tods, fromds, hdr_info.dst_mac, hdr_info.src_mac, hdr_info.bssid);
 
-	set_mac(hdr, tods, fromds, info.dst_mac, info.src_mac, info.bssid);
+	u8 *body = skb->data + rt_len + hdr_len;
+	u8 body_len = skb->len - rt_len - hdr_len;
 
-	send_to_userspace(&info);
+	if (body_len >= 4) { // strip NCS, not sure if it's always present...
+		body_len -= 4;
+	}
+
+	send_to_userspace(&hdr_info, &rt_info, body_len, body);
 	return RX_HANDLER_PASS;
 }
 

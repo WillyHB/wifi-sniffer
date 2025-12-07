@@ -10,21 +10,26 @@ struct radiotap_info {
 	u16 channel_flags;
 };
 
-struct wifi_frame_info {
-	struct radiotap_info rt_info;
+struct body_info {
+	union {
+		// for mgmt, vs other?
 
+	};
+};
+
+struct hdr_info {
 	u8 src_mac[6];
 	u8 dst_mac[6];
 	u8 bssid[6];
-
 	u8 frame_t;
 	u8 frame_st;
-
-	u16 len;
+	u8 retry;
+	u16 len; 
+	enum FRAME_DIRECTION frame_d;
 };
 
 void free_genl_family(void);
 void init_genl_family(void);
-void send_to_userspace(struct wifi_frame_info *info);
+void send_to_userspace(struct hdr_info *hdr_info, struct radiotap_info *rt_info, u8 body_len, u8 *body);
 #endif
 
