@@ -12,17 +12,18 @@ typedef enum FRAME_TYPE {
 
 typedef enum MANAGEMENT_TYPE {
 	M_ASSOCIATION_REQUEST	= 0b0000,
+	M_ASSOCIATION_RESPONSE	= 0b0001,
 	M_REASSOCIATION_REQUEST	= 0b0010,
+	M_REASSOCIATION_RESPONSE= 0b0011,
 	M_PROBE_REQUEST			= 0b0100,
+	M_PROBE_RESPONSE		= 0b0101,
 	M_TIMING_ADVERTISEMENT	= 0b0110,
 	M_BEACON				= 0b1000,
 	M_DISASSOCIATION		= 0b1010,
-	M_DEAUTHENTICATION		= 0b1100,
 	M_AUTHENTICATION		= 0b1011,
-	M_ACTION				= 0b1110,
-	M_ASSOCIATION_RESPONSE	= 0b0001,
-	M_REASSOCIATION_RESPONSE= 0b0011,
-	M_PROBE_RESPONSE		= 0b0101,
+	M_DEAUTHENTICATION		= 0b1100,
+	M_ACTION				= 0b1101,
+	M_ACTION_NOACK			= 0b1110,
 	M_RESERVED				= 0b0111,
 } MANAGEMENT_TYPE;
 
@@ -47,6 +48,21 @@ typedef enum DATA_TYPE {
 	D_RESERVED = 0b1101,
 } DATA_TYPE;
 
+typedef enum ACTION_CAT {
+	SPECTRUM_MANAGEMENT,
+	QOS,
+	DLS,
+	BLOCK_ACK,
+	PUBLIC,
+	RADIO_MEASUREMENT,
+	FAST_BSS_TRANSITION,
+	HT,
+	SA_QUERY,
+	PROTECTED_DUAL_OF_PUBLIC,
+	VHT = 21,
+	HE = 25,
+} ACTION_CAT;
+
 struct frame_type {
 	FRAME_TYPE ft;
 	union {
@@ -56,10 +72,12 @@ struct frame_type {
 	};
 };
 
-char *frame_direction_to_string(FRAME_DIRECTION dir);
-char *sub_frame_string(FRAME_TYPE t, uint8_t st);
-char *frame_t_to_string(FRAME_TYPE t);
-char *m_frame_to_string(MANAGEMENT_TYPE t);
-char *c_frame_to_string(CONTROL_TYPE t);
-char *d_frame_to_string(DATA_TYPE t);
+const char *action_cat_to_string(ACTION_CAT cat);
+const char *frame_direction_to_string(FRAME_DIRECTION dir);
+const char *sub_frame_string(FRAME_TYPE t, uint8_t st);
+const char *frame_t_to_string(FRAME_TYPE t);
+const char *m_frame_to_string(MANAGEMENT_TYPE t);
+const char *c_frame_to_string(CONTROL_TYPE t);
+const char *d_frame_to_string(DATA_TYPE t);
+uint8_t mgmt_fixed_params(MANAGEMENT_TYPE frame_st);
 #endif

@@ -25,6 +25,8 @@ struct hdr_info {
 	u8 frame_st;
 	u8 retry;
 	u16 len; 
+	u8 tods;
+	u8 fromds;
 	enum FRAME_DIRECTION frame_d;
 };
 

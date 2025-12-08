@@ -1,0 +1,53 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-g",
+      "-o0",
+      "-Wall",
+      "-Wextra",
+      "-I/usr/include/libnl3",
+      "-c",
+      "-o",
+      "build/ft_parser.o",
+      "ft_parser.c"
+    ],
+    "directory": "/home/willy/projects/wireless/user",
+    "file": "/home/willy/projects/wireless/user/ft_parser.c",
+    "output": "/home/willy/projects/wireless/user/build/ft_parser.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-g",
+      "-o0",
+      "-Wall",
+      "-Wextra",
+      "-I/usr/include/libnl3",
+      "-c",
+      "-o",
+      "build/ie_iter.o",
+      "ie_iter.c"
+    ],
+    "directory": "/home/willy/projects/wireless/user",
+    "file": "/home/willy/projects/wireless/user/ie_iter.c",
+    "output": "/home/willy/projects/wireless/user/build/ie_iter.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-g",
+      "-o0",
+      "-Wall",
+      "-Wextra",
+      "-I/usr/include/libnl3",
+      "-c",
+      "-o",
+      "build/main.o",
+      "main.c"
+    ],
+    "directory": "/home/willy/projects/wireless/user",
+    "file": "/home/willy/projects/wireless/user/main.c",
+    "output": "/home/willy/projects/wireless/user/build/main.o"
+  }
+]

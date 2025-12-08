@@ -37,10 +37,11 @@ struct hdr_info {
 	uint8_t frame_st;
 	uint8_t retry;
 	uint16_t len;
+	uint8_t tods;
+	uint8_t fromds;
 	FRAME_DIRECTION frame_d;
 };
 
 void handle_wifi_info(struct hdr_info *info, struct radiotap_info *rt_info, uint8_t *body, uint8_t body_len);
 static int frame_handler(struct nl_msg *msg, void *arg);
-uint8_t mgmt_fixed_params(MANAGEMENT_TYPE frame_st);
 #endif

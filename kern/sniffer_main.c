@@ -170,9 +170,9 @@ rx_handler_result_t mywifi_rx_handler(struct sk_buff **pskb) {
 	hdr_info.frame_t = (fc & IEEE80211_FCTL_FTYPE) >> 2;
 	hdr_info.frame_st = (fc & IEEE80211_FCTL_STYPE) >> 4;
 	hdr_info.retry = (fc & IEEE80211_FCTL_RETRY) >> 11;
-	u8 tods = (fc & IEEE80211_FCTL_TODS) >> 8;
-	u8 fromds = (fc & IEEE80211_FCTL_FROMDS) >> 9;
-	hdr_info.frame_d = parse_fromtods(hdr, tods, fromds, hdr_info.dst_mac, hdr_info.src_mac, hdr_info.bssid);
+	hdr_info.tods = (fc & IEEE80211_FCTL_TODS) >> 8;
+	hdr_info.fromds = (fc & IEEE80211_FCTL_FROMDS) >> 9;
+	hdr_info.frame_d = parse_fromtods(hdr, hdr_info.tods, hdr_info.fromds, hdr_info.dst_mac, hdr_info.src_mac, hdr_info.bssid);
 
 	u8 *body = skb->data + rt_len + hdr_len;
 	u8 body_len = skb->len - rt_len - hdr_len;
