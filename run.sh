@@ -1,17 +1,27 @@
 #!/bin/bash
 
-echo building kernel
-(cd kernel && make)
-echo building user program
+
+echo make kernel module
+(cd kern && make)
+echo make user program
 (cd user && make)
 
-(cd kernel && ./sniffer_start &)
+cd kern  || exit 1
+./sniffer_start.sh
+
+echo starting channel hopper
+./channel_hop.sh &
 hopper_pid=$!
+cd ..
 
 echo opening user program
 (cd user && ./user)
 
-kill "$hopper_pid"
-wait "$hopper_pid"
+cleanup() {
+	kill "$hopper_pid"
+	wait "$hopper_pid"
 
-(cd kernel && ./sniffer_stop)
+	(cd kern && ./sniffer_stop.sh)
+}
+
+trap cleanup EXIT INT TERM
