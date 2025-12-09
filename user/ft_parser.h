@@ -18,16 +18,22 @@ typedef enum MANAGEMENT_TYPE {
 	M_PROBE_REQUEST			= 0b0100,
 	M_PROBE_RESPONSE		= 0b0101,
 	M_TIMING_ADVERTISEMENT	= 0b0110,
+	M_RESERVED1				= 0b0111,
 	M_BEACON				= 0b1000,
+	M_ATIM					= 0b1001,
 	M_DISASSOCIATION		= 0b1010,
 	M_AUTHENTICATION		= 0b1011,
 	M_DEAUTHENTICATION		= 0b1100,
 	M_ACTION				= 0b1101,
 	M_ACTION_NOACK			= 0b1110,
-	M_RESERVED				= 0b0111,
+	M_RESERVED2				= 0b1111,
 } MANAGEMENT_TYPE;
 
 typedef enum CONTROL_TYPE {
+	C_RESERVED1					= 0b0000,
+	C_RESERVED2					= 0b0001,
+	C_TRIGGER					= 0b0010,
+	C_TACK						= 0b0011,
 	C_BEAMFORMING_REPORT_POLL	= 0b0100,
 	C_NDP_ANNOUNCEMENT			= 0b0101,
 	C_CONTROL_FRAME_EXT			= 0b0110,
@@ -38,6 +44,8 @@ typedef enum CONTROL_TYPE {
 	C_RTS						= 0b1011,
 	C_CTS						= 0b1100,
 	C_ACK						= 0b1101,
+	CF_END						= 0b1110,
+	CF_END_CF_ACK				= 0b1111,
 } CONTROL_TYPE;
 
 typedef enum DATA_TYPE {
@@ -48,20 +56,6 @@ typedef enum DATA_TYPE {
 	D_RESERVED = 0b1101,
 } DATA_TYPE;
 
-typedef enum ACTION_CAT {
-	SPECTRUM_MANAGEMENT,
-	QOS,
-	DLS,
-	BLOCK_ACK,
-	PUBLIC,
-	RADIO_MEASUREMENT,
-	FAST_BSS_TRANSITION,
-	HT,
-	SA_QUERY,
-	PROTECTED_DUAL_OF_PUBLIC,
-	VHT = 21,
-	HE = 25,
-} ACTION_CAT;
 
 struct frame_type {
 	FRAME_TYPE ft;
@@ -72,7 +66,8 @@ struct frame_type {
 	};
 };
 
-const char *action_cat_to_string(ACTION_CAT cat);
+
+
 const char *frame_direction_to_string(FRAME_DIRECTION dir);
 const char *sub_frame_string(FRAME_TYPE t, uint8_t st);
 const char *frame_t_to_string(FRAME_TYPE t);

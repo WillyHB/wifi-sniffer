@@ -2,6 +2,30 @@
 #include "main.h"
 #include <stdlib.h>
 
+int is_printable(uint8_t *str, size_t len) {
+	for (int i = 0; i < len; i++) {
+		if (str[i] < 32 || str[i] > 126) {
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
+void iter_packet_ies(struct ap *ap, struct packet_info *info, uint8_t *body, size_t body_len) {
+	struct ie_iterator *iter = ie_iter(body, body_len, info->hdr.frame_st);
+
+	while (!ie_iter_next(iter)) {
+		if (iter->cur_id == 0) {
+			if (memcmp(ap->ssid, iter->cur, iter->cur_len) != 0 && is_printable(iter->cur, iter->cur_len)) {
+				memcpy(ap->ssid, iter->cur, iter->cur_len);
+				ap->ssid[iter->cur_len] = 0;
+				ap->ssid_len = iter->cur_len;
+			}
+		}
+	}
+	ie_iter_free(iter);
+}
 struct ie_iterator *ie_iter(uint8_t *body, uint8_t body_len, MANAGEMENT_TYPE frame_st) {
 
 	uint8_t fixed = mgmt_fixed_params(frame_st);

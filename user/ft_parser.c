@@ -18,7 +18,9 @@ const char *m_frame_to_string(MANAGEMENT_TYPE t) {
 		case M_REASSOCIATION_RESPONSE: return "REASSOCIATION RESPONSE";
 		case M_PROBE_RESPONSE: return "PROBE RESPONSE";
 		case M_TIMING_ADVERTISEMENT: return "TIMING ADVERTISEMENT";
-		case M_RESERVED: return "RESERVED";
+		case M_RESERVED2:
+		case M_RESERVED1: return "MANAGEMENT RESERVED";
+		case M_ATIM: return "ATIM";
 		case M_ACTION_NOACK: return "NO ACK";
 		case M_BEACON: return "BEACON";
 		case M_DISASSOCIATION: return "DISASSOCIATION";
@@ -31,6 +33,12 @@ const char *m_frame_to_string(MANAGEMENT_TYPE t) {
 }
 const char *c_frame_to_string(CONTROL_TYPE t) {
 	switch (t) {
+		case C_RESERVED1:
+		case C_RESERVED2: return "CONTROL RESERVED";
+		case C_TACK: return "TACK";
+		case C_TRIGGER: return "TRIGGER";
+		case CF_END: return "CF-END";
+		case CF_END_CF_ACK: return "CF-END + CF-ACK";
 		case C_BEAMFORMING_REPORT_POLL: return "BEAMFORMING REPORT POLL";
 		case C_NDP_ANNOUNCEMENT: return "NDP ANNOUNCEMENT";
 		case C_CONTROL_FRAME_EXT: return "CONTROL FRAME EXTENSION";
@@ -80,11 +88,13 @@ uint8_t mgmt_fixed_params(MANAGEMENT_TYPE frame_st) {
 		case M_BEACON:
 		case M_TIMING_ADVERTISEMENT:
 		case M_PROBE_RESPONSE: return 12;
-		case M_RESERVED:
+		case M_RESERVED1:
+		case M_RESERVED2:
 		case M_ACTION:
 		case M_ACTION_NOACK:
 		case M_DISASSOCIATION:
 		case M_DEAUTHENTICATION: return 2;
+		case M_ATIM:
 		case M_PROBE_REQUEST: return 0;
 		case M_ASSOCIATION_REQUEST: return 4;
 		case M_AUTHENTICATION: 
@@ -95,21 +105,3 @@ uint8_t mgmt_fixed_params(MANAGEMENT_TYPE frame_st) {
 	return 0;
 }
 
-const char *action_cat_to_string(ACTION_CAT cat) {
-	switch (cat) {
-		case SPECTRUM_MANAGEMENT: return "SPECTRUM MANAGEMENT";
-		case QOS: return "QoS";
-		case DLS: return "DLS";
-		case BLOCK_ACK: return "BLOCK ACK";
-		case PUBLIC: return "PUBLIC";
-		case RADIO_MEASUREMENT: return "RADIO MEASUREMENT";
-		case FAST_BSS_TRANSITION: return "FAST BSS TRANSITION";
-		case HT: return "HIGH THROUGHPUT";
-		case SA_QUERY: return "SA QUERY";
-		case PROTECTED_DUAL_OF_PUBLIC: return "PROTECTED DUAL OF PUBLIC";
-		case VHT: return "VERY HIGH THROUGHPUT";
-		case HE: return "HE";
-	}
-
-	return "UNKNOWN";
-}
