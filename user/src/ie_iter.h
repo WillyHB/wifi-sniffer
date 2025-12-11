@@ -9,7 +9,7 @@ struct ie_iterator {
 	uint8_t cur_len;
 	uint8_t *cur;
 
-	uint8_t ies_len;
+	uint64_t ies_len;
 	uint8_t ies[];
 };
 

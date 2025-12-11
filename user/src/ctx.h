@@ -7,21 +7,25 @@
 #include <ncurses.h>
 #include <stdint.h>
 #include <time.h>
-#include "uthash.h"
 
+typedef enum AP_VIEW {
+	MAIN,
+	DETAIL,
+} AP_VIEW;
 
 struct ap {
 	time_t last_seen;
 	uint32_t rx_packets;
-	uint32_t beacons;
 	uint32_t tx_packets;
+	uint32_t beacons;
+	uint32_t retries;
 	uint8_t mac[6];
 	uint8_t ssid[32];
 	uint8_t ssid_len;
 	short col_pair;
 	uint16_t channel_freqs[CHANNELS_COUNT];
 	uint8_t freq_num;
-	UT_hash_handle hh;
+	AP_VIEW view;
 };
 
 struct action_frame {
@@ -69,7 +73,7 @@ struct ctx {
 	struct packet_info packet_buf[PACKET_BUF_SIZE];
 	size_t packet_buf_index;
 };
-struct ctx *ctx_init();
-void ctx_free(struct ctx*);
+struct ctx *init_ctx();
+void free_ctx(struct ctx*);
 struct ap *get_ap(struct ctx *ctx, uint8_t mac[6]);
 #endif

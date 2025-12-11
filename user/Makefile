@@ -11,7 +11,7 @@ LDFLAGS := -lnl-3 -lnl-genl-3 -lncurses
 all: $(objs)
 	gcc $^ -o $(target) $(LDFLAGS)
 
-$(build_dir)/%.o: %.c
+$(build_dir)/%.o: $(src_dir)/%.c
 	gcc $(CFLAGS) $(CPPFLAGS) -c $^ -o $@ #For each .c file, compile into .o file with .o name
 
 .PHONY: clean

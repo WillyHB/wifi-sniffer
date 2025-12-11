@@ -63,59 +63,80 @@ struct nl_sock *init_netlink_socket(struct ctx *ctx) {
 	return sock;
 }
 
-struct ctx *init_ui(void) {
-	initscr();
-	struct ctx *ctx = ctx_init();
-	noecho();
-	cbreak();
-	curs_set(0);
-	start_color();
-	nodelay(stdscr, 1);
-
-	for (int i = 1; i < COLORS; i++) {
-		init_pair(i, i, COLOR_BLACK);
-	}
-
-	return ctx;
-}
-
 int main() {
-
 	struct ctx *ctx = init_ui();
+	if (ctx == NULL) {
+		fprintf(stderr, "Allocating ctx failed");
+		return -1;
+	}
 	struct nl_sock *sock = init_netlink_socket(ctx) ;
 	channel_init("mon0");
 
 	uint8_t paused = 0;
 	uint8_t hopping = 0;
-	uint16_t hop_timer = 5000;
+	uint16_t hop_timer = HOP_TIME;
 	while (1) {
+
 		int c = getch();
-		if (c == ' ') {
-			if (!paused) mvprintw(0, 0,"PAUSED");
+		switch (c) {
+
+			case ' ': 
+				paused = !paused; 
+				break;
+			case 'k':
+				if (ctx->scroll > 0) ctx->scroll--;
+				break;
+			case 'j':
+				if (ctx->scroll + getmaxy(ctx->ap_win) < ctx->aps_count) ctx->scroll++;
+				break;
+			case 'K':
+				ctx->scroll = 0;
+				break;
+			case 'J': {
+				int val = ctx->aps_count - getmaxy(ctx->ap_win);
+				ctx->scroll = val > 0 ? val : 0;
+					  }
+				break;
+			case 'l':
+				ctx->aps[ctx->scroll].view = DETAIL;
+				break;
+			case 'h':
+				ctx->aps[ctx->scroll].view = MAIN;
+				break;
+			case 'L':
+				for (int i = 0; i < ctx->aps_count; i++) {
+					ctx->aps[i].view = DETAIL;
+				}
+				break;
+			case 'H':
+				for (int i = 0; i < ctx->aps_count; i++) {
+					ctx->aps[i].view = MAIN;
+				}
+				break;
+			case '\t':
+				hopping = !hopping;
+				break;
+
+			case 'q':
+				goto exit_loop;
+		}
+
+		if (!paused) {
+			int ret = nl_recvmsgs_default(sock);
+
+			if (ret < 0 && ret != -NLE_AGAIN) {
+				continue;
+				fprintf(stderr, "Netlink message receive error (code:%d)\n", ret);
+			}
+		} else {
+			mvprintw(0, 0,"PAUSED");
 			refresh();
-			paused = !paused;
-		}else if (c == 'k'){
-			if (ctx->scroll > 0) ctx->scroll--;
-		} else if (c == 'j') {
-			if (ctx->scroll < ctx->aps_count) ctx->scroll++;
-		} else if (c == 'h') {
-			hopping = !hopping;
-		} else if (c == 'q') break;
-
-		if (paused) continue;
-
-		int ret = nl_recvmsgs_default(sock);
-		
-		if (ret < 0 && ret != -NLE_AGAIN) {
-			continue;
-			//fprintf(stderr, "Netlink message receive error (code:%d)\n", ret);
 		}
 		
-
 		for (size_t i = 0; i < ctx->aps_count; i++) {
 			if (time(NULL) - ctx->aps[i].last_seen > 30) {
-				for (size_t j = i; j < ctx->aps_count-1; j++) {
-					ctx->aps[j] = ctx->aps[j+1];
+				for (size_t j = i+1; j < ctx->aps_count; j++) {
+					ctx->aps[j] = ctx->aps[j-1];
 				}
 				if (ctx->scroll >= ctx->aps_count) ctx->scroll--;
 
@@ -125,13 +146,15 @@ int main() {
 		}
 
 		draw_ui(ctx);
+
 		if (hopping && hop_timer-- <= 0) {
-			hop_timer = 5000;
+			hop_timer = HOP_TIME;
 			next_channel("mon0");
 		}
 	}
+exit_loop:
 
-	ctx_free(ctx);
+	free_ctx(ctx);
 	curs_set(1);
 
 	nl_close(sock);
@@ -154,7 +177,6 @@ static int frame_handler(struct nl_msg *msg, void *arg) {
 	return NL_OK;
 }
 
-
 void handle_wifi_info(struct ctx *ctx, struct hdr_info *info, struct radiotap_info *rt_info, uint8_t *body, size_t body_len) {
 	if (info == NULL || rt_info == NULL || body == NULL) return;
 
@@ -168,18 +190,26 @@ void handle_wifi_info(struct ctx *ctx, struct hdr_info *info, struct radiotap_in
 
 	struct ap *ap = get_ap(ctx,ap_mac);
 
-	if (ap != NULL) {
-		if (info->fromds) {
-			ap->last_seen = time(NULL);
-			ap->tx_packets++;
+	if (info->fromds) {
+		struct ap *src_ap = get_ap(ctx, info->src_mac);
+		if (src_ap != NULL) {
+			src_ap->tx_packets++;
+			src_ap->last_seen = time(NULL);
+			if (info->retry) src_ap->retries++;
 		}
-		if (info->tods) ap->rx_packets++;
+	}
+	if (info->tods) {
+		struct ap *dst_ap = get_ap(ctx, info->dst_mac);
+		if (dst_ap != NULL) {
+			dst_ap->rx_packets++;
+			if (info->retry) dst_ap->retries++;
+		}
 	}
 
 	if (info->frame_t == T_MANAGEMENT) {
 		if (info->frame_st == M_BEACON || info->frame_st == M_PROBE_RESPONSE) {
 			if (ap == NULL) {
-				ap = &ctx->aps[ctx->aps_count];
+				ap = &ctx->aps[ctx->aps_count++];
 				memcpy(ap->mac, ap_mac, 6);
 				size_t len = strlen("<hidden>");
 				memcpy(ap->ssid, "<hidden>", len);
@@ -187,7 +217,6 @@ void handle_wifi_info(struct ctx *ctx, struct hdr_info *info, struct radiotap_in
 				ap->ssid_len = strlen("<hidden>");
 				ap->col_pair = cur_col+1;
 				cur_col = (cur_col+1) % COLORS;
-				ctx->aps_count++;
 			}
 		}
 
@@ -207,7 +236,6 @@ void handle_wifi_info(struct ctx *ctx, struct hdr_info *info, struct radiotap_in
 			ctx->packet_buf[ctx->packet_buf_index].action.code = body[1];
 		}
 	}
-
 
 	ctx->packet_buf_index = (ctx->packet_buf_index+1) % PACKET_BUF_SIZE;
 }

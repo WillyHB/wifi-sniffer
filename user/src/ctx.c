@@ -3,17 +3,21 @@
 #include <ncurses.h>
 #include <string.h>
 
-struct ctx *ctx_init() {
-	struct ctx *ctx = malloc(sizeof(struct ctx));
+struct ctx *init_ctx() {
+	struct ctx *ctx = calloc(1,sizeof(struct ctx));
+	if (ctx == NULL) {
+		return NULL;
+	}
+
 	int h,w;
 	getmaxyx(stdscr, h, w);
 	ctx->ap_win = newwin(h/2, w-30, h/2, 0);
 	ctx->packet_win = newwin(h/2, w-30, 0, 0);
-	ctx->stats_win = newwin(h-30, 30, 0, w-30);
-	ctx->usage_win = newwin(30, 30, h-30, w-30);
+	ctx->stats_win = newwin(h-10, 30, 0, w-30);
+	ctx->usage_win = newwin(10, 30, h-10, w-30);
 	return ctx;
 }
-void ctx_free(struct ctx *ctx) {
+void free_ctx(struct ctx *ctx) {
 	delwin(ctx->ap_win);
 	delwin(ctx->packet_win);
 	delwin(ctx->stats_win);

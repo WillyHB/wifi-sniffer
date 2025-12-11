@@ -4,7 +4,6 @@
 #include "ctx.h"
 #include "ft_parser.h"
 #include "helpers.h"
-#include "uthash.h"
 #include <ncurses.h>
 #include <string.h>
 #include <time.h>
@@ -24,20 +23,28 @@ void print_mac(WINDOW *win, struct ctx *ctx, uint8_t mac[6]) {
 	if (pair >= 0) wattroff(win,COLOR_PAIR(pair));
 }
 
+
 void draw_ap_win(struct ctx *ctx) {
-	for (size_t i = ctx->scroll, win_y = 0; i < ctx->aps_count; i++, win_y++) {
+	for (size_t i = ctx->scroll, win_y = 1; i < ctx->aps_count && win_y < getmaxy(ctx->ap_win); i++, win_y++) {
+		if (i == ctx->scroll) mvwprintw(ctx->ap_win,win_y,2, "* ");
+		else mvwprintw(ctx->ap_win,win_y,2,"");
 		wattron(ctx->ap_win, COLOR_PAIR(ctx->aps[i].col_pair+1));
-		mvwprintw(ctx->ap_win,win_y,2, "[ ");
+		wprintw(ctx->ap_win, "[ ");
 		for (int frq_i = 0; frq_i < ctx->aps[i].freq_num; frq_i++) {
 			wprintw(ctx->ap_win, "%u ", ctx->aps[i].channel_freqs[frq_i]);
 		}
-		wprintw(ctx->ap_win, "] %*s (", ctx->aps[i].ssid_len, ctx->aps[i].ssid);
+		wprintw(ctx->ap_win, "] %-32s (", ctx->aps[i].ssid);
 		print_mac(ctx->ap_win, ctx, ctx->aps[i].mac);
-		wprintw(ctx->ap_win, ")");
+		wprintw(ctx->ap_win, ") ");
 		wattroff(ctx->ap_win, COLOR_PAIR(ctx->aps[i].col_pair+1));
 
-		wprintw(ctx->ap_win, "[TX: %u] [RX: %u] [Beacons: %u] [Last Seen: %ld sec ago]", 
-				ctx->aps[i].tx_packets, ctx->aps[i].rx_packets, ctx->aps[i].beacons, time(NULL)- ctx->aps[i].last_seen);
+		if (ctx->aps[i].view == MAIN) {
+			wprintw(ctx->ap_win, "Last Seen: %02ld sec ago [Beacons: %u] ", time(NULL) - ctx->aps[i].last_seen, ctx->aps[i].beacons);
+		} else {
+			wprintw(ctx->ap_win, "[TX: %u] [RX: %u] [Retries: %u]", 
+					ctx->aps[i].tx_packets, ctx->aps[i].rx_packets, ctx->aps[i].retries);
+		}
+
 	}
 	box(ctx->ap_win,0,0);
 }
@@ -47,10 +54,8 @@ void draw_packet_win(struct ctx *ctx) {
 		int index = (int)ctx->packet_buf_index - 1 - (int)i;
 		if (index < 0) index += PACKET_BUF_SIZE;
 
-
 		if (memcmp(&ctx->packet_buf[index], &(struct packet_info){0}, sizeof(struct packet_info)) == 0) {
 				continue;
-
 		}
 
 		struct hdr_info hdr = ctx->packet_buf[index].hdr;
@@ -115,12 +120,16 @@ void draw_stats_win(struct ctx *ctx) {
 }
 
 void draw_usage_win(struct ctx *ctx) {
-	mvwprintw(ctx->usage_win,1,1, "(H) Toggle Channel Hop");
+	mvwprintw(ctx->usage_win,1,1, "(TAB) Toggle Channel Hop");
+	mvwprintw(ctx->usage_win,2,1, "(SPACE) Pause Receiving");
+	mvwprintw(ctx->usage_win,3,1, "(j/k) Scroll AP List");
+	mvwprintw(ctx->usage_win,3,1, "(J/K) Top/Bottom AP List");
+	mvwprintw(ctx->usage_win,4,1, "(h/l) Scroll AP Detail");
+	mvwprintw(ctx->usage_win,5,1, "(H/L) Scroll ALL AP Detail");
 	box(ctx->usage_win,0,0);
 }
 
 void draw_ui(struct ctx *ctx) {
-
 	werase(ctx->stats_win);
 	draw_stats_win(ctx);
 	wnoutrefresh(ctx->stats_win);
@@ -138,4 +147,24 @@ void draw_ui(struct ctx *ctx) {
 	wnoutrefresh(ctx->usage_win);
 
 	doupdate();
+}
+
+struct ctx *init_ui(void) {
+	initscr();
+	struct ctx *ctx = init_ctx();
+	if (ctx == NULL) {
+		return NULL;
+	}
+
+	noecho();
+	cbreak();
+	curs_set(0);
+	start_color();
+	nodelay(stdscr, 1);
+
+	for (int i = 1; i < COLORS; i++) {
+		init_pair(i, i, COLOR_BLACK);
+	}
+
+	return ctx;
 }

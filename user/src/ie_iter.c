@@ -2,8 +2,8 @@
 #include "main.h"
 #include <stdlib.h>
 
-int is_printable(uint8_t *str, size_t len) {
-	for (int i = 0; i < len; i++) {
+int is_printable(uint8_t *str, uint64_t len) {
+	for (uint64_t i = 0; i < len; i++) {
 		if (str[i] < 32 || str[i] > 126) {
 			return 0;
 		}

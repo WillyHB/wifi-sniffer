@@ -5,4 +5,5 @@
 #include "ctx.h"
 
 void draw_ui(struct ctx *ctx);
+struct ctx *init_ui(void);
 #endif

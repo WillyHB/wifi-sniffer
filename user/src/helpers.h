@@ -3,5 +3,6 @@
 
 #define PACKET_BUF_SIZE 20
 #define AP_CAPACITY 1028
+#define HOP_TIME 5000
 				   //
 #endif

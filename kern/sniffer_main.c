@@ -13,6 +13,7 @@
 #include <net/genetlink.h>
 #include <net/netlink.h>
 #include "sniffer_main.h"
+#include "linux/skbuff.h"
 #include "sniffer_netlink.h"
 
 // Good to remember:
@@ -64,13 +65,9 @@ struct radiotap_info get_radiotap_info(struct ieee80211_radiotap_header *rt_hdr,
 		if (ret) continue;
 		if (iter.this_arg == NULL) continue;
 
-		pr_info("Arg index: %d\n", iter.this_arg_index);
-
 		switch (iter.this_arg_index) {
 			case IEEE80211_RADIOTAP_DB_ANTSIGNAL:
-			case 20:
 				info.rssi = *(int8_t*)(iter.this_arg);
-				printk(KERN_INFO "Test, here! :) %d\n", *(int8_t*)(iter.this_arg));
 				break;
 			case IEEE80211_RADIOTAP_CHANNEL:
 				info.channel_freq = get_unaligned_le16(iter.this_arg);
@@ -109,6 +106,7 @@ enum FRAME_DIRECTION parse_fromtods(struct ieee80211_hdr *hdr, u8 tods, u8 fromd
 
 rx_handler_result_t mywifi_rx_handler(struct sk_buff **pskb) {
 	struct sk_buff *skb = *pskb;
+	if (skb_linearize(skb) != 0) return RX_HANDLER_PASS;
 
 	struct hdr_info hdr_info;
 	struct radiotap_info rt_info;
@@ -116,8 +114,8 @@ rx_handler_result_t mywifi_rx_handler(struct sk_buff **pskb) {
 	struct ieee80211_radiotap_header *rt_hdr;
 	struct ieee80211_hdr *hdr;
 	u16 fc;
-	u16 hdr_len;
-	u16 rt_len;
+	int hdr_len;
+	int rt_len;
 
 	rt_hdr = (struct ieee80211_radiotap_header*)skb->data;
 	rt_len = le16_to_cpu(rt_hdr->it_len);
@@ -127,7 +125,9 @@ rx_handler_result_t mywifi_rx_handler(struct sk_buff **pskb) {
 
 	hdr = (struct ieee80211_hdr*)(skb->data+rt_len);
 	fc = le16_to_cpu(hdr->frame_control);
-	hdr_len = le16_to_cpu(ieee80211_hdrlen(fc));
+	hdr_len = ieee80211_hdrlen(fc);
+
+	if (skb->len < rt_len + hdr_len) return RX_HANDLER_PASS;
 
 	hdr_info.frame_t = (fc & IEEE80211_FCTL_FTYPE) >> 2;
 	hdr_info.frame_st = (fc & IEEE80211_FCTL_STYPE) >> 4;
@@ -137,7 +137,7 @@ rx_handler_result_t mywifi_rx_handler(struct sk_buff **pskb) {
 	hdr_info.frame_d = parse_fromtods(hdr, hdr_info.tods, hdr_info.fromds, hdr_info.dst_mac, hdr_info.src_mac, hdr_info.bssid);
 
 	u8 *body = skb->data + rt_len + hdr_len;
-	u8 body_len = skb->len - rt_len - hdr_len;
+	int body_len = skb->len - rt_len - hdr_len;
 
 	if (body_len >= 4) { // strip NCS, not sure if it's always present...
 		body_len -= 4;
