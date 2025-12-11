@@ -25,6 +25,8 @@ cleanup() {
 	#wait "$hopper_pid"
 
 	(cd kern && ./sniffer_stop.sh)
+	(cd kern && make clean)
+	(cd user && make clean)
 }
 
 trap cleanup EXIT INT TERM

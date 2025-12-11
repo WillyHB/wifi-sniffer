@@ -12,10 +12,11 @@ all: $(objs)
 	gcc $^ -o $(target) $(LDFLAGS)
 
 $(build_dir)/%.o: $(src_dir)/%.c
+	mkdir -p $(build_dir)
 	gcc $(CFLAGS) $(CPPFLAGS) -c $^ -o $@ #For each .c file, compile into .o file with .o name
 
 .PHONY: clean
 clean:
-	rm $(objs)
+	rm -r $(build_dir)
 	rm $(target)
 	rm compile_commands.json
