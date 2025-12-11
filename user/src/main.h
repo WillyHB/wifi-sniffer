@@ -2,7 +2,7 @@
 #define MAIN_H
 
 #include <stdint.h>
-#include "../common/common.h"
+#include "../../common/common.h"
 #include "ctx.h"
 #include "netlink/attr.h"
 

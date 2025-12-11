@@ -10,13 +10,6 @@ struct radiotap_info {
 	u16 channel_flags;
 };
 
-struct body_info {
-	union {
-		// for mgmt, vs other?
-
-	};
-};
-
 struct hdr_info {
 	u8 src_mac[6];
 	u8 dst_mac[6];

@@ -1,6 +1,8 @@
-srcs := $(wildcard *.c)
 build_dir := ./build
-objs :=  $(srcs:%.c=$(build_dir)/%.o)
+src_dir := ./src
+
+srcs := $(wildcard $(src_dir)/*.c)
+objs :=  $(srcs:$(src_dir)/%.c=$(build_dir)/%.o)
 target := user
 CPPFLAGS := -I/usr/include/libnl3
 CFLAGS := -g -o0 -Wall -Wextra

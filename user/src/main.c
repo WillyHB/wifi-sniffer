@@ -7,7 +7,8 @@
 #include <time.h>
 #include <unistd.h>
 #include <sys/socket.h>
-#include "../common/common.h"
+#include "../../common/common.h"
+#include "channel_hop.h"
 #include "ctx.h"
 #include "ft_parser.h"
 #include "helpers.h"
@@ -22,45 +23,49 @@
 #include <netlink/genl/genl.h>
 #include <netlink/genl/ctrl.h>
 #include <netlink/socket.h>
+#include <linux/nl80211.h>
 #include "main.h"
 
-int main() {
+struct nl_sock *init_netlink_socket(struct ctx *ctx) {
 	struct nl_sock *sock = nl_socket_alloc();
 	if (sock == NULL) {
 		fprintf(stderr, "Socket allocation failed\n");
-		return 1;
+		return NULL;
 	}
 
 	if (genl_connect(sock) < 0) {
 		fprintf(stderr, "Socket connection failed\n");
-		return 1;
+		return NULL;
 	}
 	
 	int mcgrp = genl_ctrl_resolve_grp(sock, WIFI_FAMILY_NAME, WIFI_MCGRP_NAME);
 	if (mcgrp < 0) {
 		fprintf(stderr, "Resolving netlink family failed\n");
 		nl_socket_free(sock);
-		return 1;
+		return NULL;
 	}
 
 	if (nl_socket_add_membership(sock, mcgrp)) {
 		fprintf(stderr, "Adding family membership to socket failed\n");
-		return 1;
+		return NULL;
 	}
 	
-	initscr();
-	struct ctx *ctx = ctx_init();
 
 	if (nl_socket_modify_cb(sock, NL_CB_VALID, NL_CB_CUSTOM, frame_handler, ctx) < 0) {
 		fprintf(stderr, "Socket callback modification failed\n");
 		nl_socket_free(sock);
-		return 1;
+		return NULL;
 	}
 
 	nl_socket_disable_seq_check(sock);
 	nl_socket_set_nonblocking(sock);
 
+	return sock;
+}
 
+struct ctx *init_ui(void) {
+	initscr();
+	struct ctx *ctx = ctx_init();
 	noecho();
 	cbreak();
 	curs_set(0);
@@ -71,17 +76,31 @@ int main() {
 		init_pair(i, i, COLOR_BLACK);
 	}
 
-	int paused = 0;
+	return ctx;
+}
 
+int main() {
+
+	struct ctx *ctx = init_ui();
+	struct nl_sock *sock = init_netlink_socket(ctx) ;
+	channel_init("mon0");
+
+	uint8_t paused = 0;
+	uint8_t hopping = 0;
+	uint16_t hop_timer = 5000;
 	while (1) {
 		int c = getch();
 		if (c == ' ') {
 			if (!paused) mvprintw(0, 0,"PAUSED");
 			refresh();
 			paused = !paused;
-		}
-
-		else if (c == 'q') break;
+		}else if (c == 'k'){
+			if (ctx->scroll > 0) ctx->scroll--;
+		} else if (c == 'j') {
+			if (ctx->scroll < ctx->aps_count) ctx->scroll++;
+		} else if (c == 'h') {
+			hopping = !hopping;
+		} else if (c == 'q') break;
 
 		if (paused) continue;
 
@@ -98,19 +117,19 @@ int main() {
 				for (size_t j = i; j < ctx->aps_count-1; j++) {
 					ctx->aps[j] = ctx->aps[j+1];
 				}
+				if (ctx->scroll >= ctx->aps_count) ctx->scroll--;
 
 				ctx->aps_count--;
+				i--;
 			}
 		}
 
 		draw_ui(ctx);
+		if (hopping && hop_timer-- <= 0) {
+			hop_timer = 5000;
+			next_channel("mon0");
+		}
 	}
-
-	/*
-	for (int i = 1; i < COLORS; i++) {
-		free_pair(i);
-	}
-	*/
 
 	ctx_free(ctx);
 	curs_set(1);
@@ -148,45 +167,47 @@ void handle_wifi_info(struct ctx *ctx, struct hdr_info *info, struct radiotap_in
 	memcpy(ap_mac, info->bssid, 6);
 
 	struct ap *ap = get_ap(ctx,ap_mac);
-	if (ap == NULL) {
-		ap = &ctx->aps[ctx->aps_count];
-		memcpy(ap->mac, ap_mac, 6);
-		size_t len = strlen("<hidden>");
-		memcpy(ap->ssid, "<hidden>", len);
-		ap->ssid[len] = 0;
-		ap->ssid_len = strlen("<hidden>");
-		ap->col_pair = cur_col+1;
-		cur_col = (cur_col+1) % COLORS;
-		ctx->aps_count++;
-	} 
 
-
-	if (info->fromds) {
-		ap->last_seen = time(NULL);
-		ap->tx_packets++;
+	if (ap != NULL) {
+		if (info->fromds) {
+			ap->last_seen = time(NULL);
+			ap->tx_packets++;
+		}
+		if (info->tods) ap->rx_packets++;
 	}
-	if (info->tods) ap->rx_packets++;
-
 
 	if (info->frame_t == T_MANAGEMENT) {
+		if (info->frame_st == M_BEACON || info->frame_st == M_PROBE_RESPONSE) {
+			if (ap == NULL) {
+				ap = &ctx->aps[ctx->aps_count];
+				memcpy(ap->mac, ap_mac, 6);
+				size_t len = strlen("<hidden>");
+				memcpy(ap->ssid, "<hidden>", len);
+				ap->ssid[len] = 0;
+				ap->ssid_len = strlen("<hidden>");
+				ap->col_pair = cur_col+1;
+				cur_col = (cur_col+1) % COLORS;
+				ctx->aps_count++;
+			}
+		}
+
 		if (info->frame_st == M_BEACON) {
 			ap->last_seen = time(NULL);
 			ap->beacons++;
-
 			uint8_t flag = 0;
 			for (int i = 0; i < ap->freq_num; i++) {
 				if (ap->channel_freqs[i] == rt_info->channel_freq) flag = 1;
 			}
 			if (flag == 0) ap->channel_freqs[ap->freq_num++] = rt_info->channel_freq;
-		}
 
-		if (info->frame_st == M_ACTION || info->frame_st == M_ACTION_NOACK) {
+			iter_packet_ies(ap, &ctx->packet_buf[ctx->packet_buf_index], body, body_len);
+			return;
+		} else if (info->frame_st == M_ACTION || info->frame_st == M_ACTION_NOACK) {
 			ctx->packet_buf[ctx->packet_buf_index].action.cat = body[0];
 			ctx->packet_buf[ctx->packet_buf_index].action.code = body[1];
 		}
-
-		iter_packet_ies(ap, &ctx->packet_buf[ctx->packet_buf_index], body, body_len);
 	}
+
 
 	ctx->packet_buf_index = (ctx->packet_buf_index+1) % PACKET_BUF_SIZE;
 }

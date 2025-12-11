@@ -1,11 +1,13 @@
 #ifndef CTX_H
 #define CTX_H
 
+#include "channel_hop.h"
 #include "helpers.h"
-#include "ft_parser.h"
+#include "../../common/common.h"
 #include <ncurses.h>
 #include <stdint.h>
 #include <time.h>
+#include "uthash.h"
 
 
 struct ap {
@@ -17,8 +19,9 @@ struct ap {
 	uint8_t ssid[32];
 	uint8_t ssid_len;
 	short col_pair;
-	uint16_t channel_freqs[CHANNELS];
+	uint16_t channel_freqs[CHANNELS_COUNT];
 	uint8_t freq_num;
+	UT_hash_handle hh;
 };
 
 struct action_frame {
@@ -57,9 +60,9 @@ struct packet_info {
 	struct hdr_info hdr;
 };
 
-
 struct ctx {
-	WINDOW *ap_win, *packet_win, *stats_win;
+	uint8_t scroll;
+	WINDOW *ap_win, *packet_win, *stats_win, *usage_win;
 	struct ap aps[AP_CAPACITY];
 	size_t aps_count;
 	uint32_t packets;

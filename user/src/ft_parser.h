@@ -2,7 +2,7 @@
 #define FT_PARSER_H
 
 #include <stdint.h>
-#include "../common/common.h"
+#include "../../common/common.h"
 
 typedef enum FRAME_TYPE {
 	T_MANAGEMENT,

@@ -7,17 +7,6 @@
 #include "net/ieee80211_radiotap.h"
 #include "sniffer_netlink.h"
 
-
-int mywifi_open(struct net_device *dev);
-int mywifi_close(struct net_device *dev);
-netdev_tx_t mywifi_xmit(struct sk_buff *skb, struct net_device *dev);
-struct net_device_ops sniffer_ops = {
-     .ndo_open         = mywifi_open,
-     .ndo_stop         = mywifi_close,
-     .ndo_start_xmit   = mywifi_xmit,
-};
-
-
 struct SNIFFER_PRIV {
 	int dummy;
 };

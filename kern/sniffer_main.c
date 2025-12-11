@@ -22,50 +22,15 @@
 // IBSS: Independent BSS (So no AP, only STAs talking to each other)
 // DS: Distribution System - Infrastructure which connects APs (Ethernet or other)
 
-struct net_device *mydev;
 struct net_device *real_dev;
-
-void mywifi_dev_init(struct net_device *dev) {
-	if (dev == NULL) return;
-
-	dev->netdev_ops = &sniffer_ops;
-
-	ether_setup(dev);
-	eth_random_addr((u8*)dev->dev_addr);
-	dev->mtu = 1500; // Max Transition Unit (largest payload)
-    dev->tx_queue_len = 100;
-    dev->flags = IFF_NOARP | IFF_BROADCAST | IFF_MULTICAST;
-	dev->addr_assign_type = NET_ADDR_RANDOM;
-}
 
 int sniffer_init(void) {
 	printk(KERN_INFO "Sniffer loaded!\n");
-
-	/*
-	mydev = alloc_netdev(
-		sizeof(struct SNIFFER_PRIV), 
-		"mywifi%d", 
-		NET_NAME_ENUM, 
-		mywifi_dev_init);
-
-	if (!mydev) {
-		printk(KERN_ERR "Failed to allocate net_device\n");
-		return ENOMEM;
-	}
-
-	if(register_netdev(mydev)) {
-      	printk(KERN_ERR "Failed to register net device\n");
-        free_netdev(mydev);
-		return -1;
-	}
-	*/
 
 	real_dev = dev_get_by_name(&init_net, "mon0");
 
 	if (!real_dev) {
 		printk(KERN_ERR "Net Device %s not found", "mon0");
-		//unregister_netdevice(mydev);
-		//free_netdev(mydev);
 		return -1;
 	}
 
@@ -76,8 +41,6 @@ int sniffer_init(void) {
 	if (ret) {
 		printk(KERN_ERR "Failed to register RX handler\n");
 		dev_put(real_dev);
-		//unregister_netdev(mydev);
-		//free_netdev(mydev);
 		return ret;
 	}
 
@@ -149,7 +112,6 @@ rx_handler_result_t mywifi_rx_handler(struct sk_buff **pskb) {
 
 	struct hdr_info hdr_info;
 	struct radiotap_info rt_info;
-	struct body_info b_info;
 
 	struct ieee80211_radiotap_header *rt_hdr;
 	struct ieee80211_hdr *hdr;
@@ -195,25 +157,7 @@ void sniffer_clean(void) {
 
 	free_genl_family();
 
-	if (mydev) {
-		unregister_netdev(mydev);
-		free_netdev(mydev);
-	}
     printk(KERN_INFO "Sniffer unloaded\n");
-}
-
-int mywifi_open(struct net_device *dev) {
-	printk(KERN_INFO "mywifi: device opened\n");
-	return 0;
-}
-int mywifi_close(struct net_device *dev) {
-	printk(KERN_INFO "mywifi: device closed\n");
-	return 0;
-}
-
-netdev_tx_t mywifi_xmit(struct sk_buff *skb, struct net_device *dev) {
-	dev_kfree_skb(skb);
-	return NETDEV_TX_OK;
 }
 
 module_init(sniffer_init);

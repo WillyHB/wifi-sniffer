@@ -47,6 +47,7 @@ void send_to_userspace(struct hdr_info *hdr_info, struct radiotap_info *rt_info,
 		printk(KERN_ERR "nla_put Failed\n");
 		genlmsg_cancel(skb, msg_hdr);
 		kfree_skb(skb);
+		return;
 	}
 
 	genlmsg_end(skb, msg_hdr);
@@ -55,4 +56,6 @@ void send_to_userspace(struct hdr_info *hdr_info, struct radiotap_info *rt_info,
 	if (ret && ret != -3) {
 		printk(KERN_ERR "Multicast failed (code %d)\n", ret);
 	}
+
+	//kfree_skb(skb);
 }

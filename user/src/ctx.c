@@ -9,15 +9,15 @@ struct ctx *ctx_init() {
 	getmaxyx(stdscr, h, w);
 	ctx->ap_win = newwin(h/2, w-30, h/2, 0);
 	ctx->packet_win = newwin(h/2, w-30, 0, 0);
-	ctx->stats_win = newwin(h, 30, 0, w-30);
-
+	ctx->stats_win = newwin(h-30, 30, 0, w-30);
+	ctx->usage_win = newwin(30, 30, h-30, w-30);
 	return ctx;
 }
 void ctx_free(struct ctx *ctx) {
-
 	delwin(ctx->ap_win);
 	delwin(ctx->packet_win);
 	delwin(ctx->stats_win);
+	delwin(ctx->usage_win);
 	endwin();
 
 	free(ctx);
