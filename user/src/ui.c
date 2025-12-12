@@ -68,6 +68,7 @@ void draw_packet_win(struct ctx *ctx) {
 			wattroff(ctx->packet_win, A_BOLD);
 			if (hdr.frame_st == M_BEACON) {
 				struct ap *ap = get_ap(ctx, hdr.bssid);
+				//if (ap == NULL) continue;
 				wattron(ctx->packet_win, COLOR_PAIR(ap->col_pair+1));
 				print_mac(ctx->packet_win, ctx, ap->mac);
 				wprintw(ctx->packet_win," (%s)", ap->ssid);
@@ -86,7 +87,7 @@ void draw_packet_win(struct ctx *ctx) {
 			wattron(ctx->packet_win, A_BOLD);
 			wprintw(ctx->packet_win, "[Broadcast] ");
 			wattroff(ctx->packet_win, A_BOLD);
-			print_mac(ctx->packet_win, ctx, hdr.dst_mac);
+			print_mac(ctx->packet_win, ctx, hdr.src_mac);
 			wprintw(ctx->packet_win, " %s", sub_frame_string(hdr.frame_t, hdr.frame_st));
 		} else {
 			wattron(ctx->packet_win, A_BOLD);
@@ -123,9 +124,9 @@ void draw_usage_win(struct ctx *ctx) {
 	mvwprintw(ctx->usage_win,1,1, "(TAB) Toggle Channel Hop");
 	mvwprintw(ctx->usage_win,2,1, "(SPACE) Pause Receiving");
 	mvwprintw(ctx->usage_win,3,1, "(j/k) Scroll AP List");
-	mvwprintw(ctx->usage_win,3,1, "(J/K) Top/Bottom AP List");
-	mvwprintw(ctx->usage_win,4,1, "(h/l) Scroll AP Detail");
-	mvwprintw(ctx->usage_win,5,1, "(H/L) Scroll ALL AP Detail");
+	mvwprintw(ctx->usage_win,4,1, "(J/K) Top/Bottom AP List");
+	mvwprintw(ctx->usage_win,5,1, "(h/l) Scroll AP Detail");
+	mvwprintw(ctx->usage_win,6,1, "(H/L) Scroll ALL AP Detail");
 	box(ctx->usage_win,0,0);
 }
 

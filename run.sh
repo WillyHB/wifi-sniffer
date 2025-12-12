@@ -1,7 +1,5 @@
 #!/bin/bash
 
-trap cleanup EXIT INT TERM
-
 (cd kern  && ./sniffer_start.sh)
 sleep 1
 echo opening user program
@@ -11,5 +9,4 @@ cleanup() {
 	(cd kern && ./sniffer_stop.sh)
 }
 
-cleanup
-
+trap cleanup EXIT INT TERM

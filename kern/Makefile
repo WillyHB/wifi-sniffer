@@ -1,12 +1,12 @@
 obj-m += sniffer.o
-BUILD_DIR := build
+BUILDDIR := build
 #sniffer-objs := sniffer_main.o sniffer_netlink.o
 sniffer-y := sniffer_main.o sniffer_netlink.o
 
 all: 
-	mkdir -p $(BUILD_DIR)
-	make -C /lib/modules/$(shell uname -r)/build/ M=$(CURDIR) MO="$(CURDI)/build" modules
+	mkdir -p $(BUILDDIR)
+	make -C /lib/modules/$(shell uname -r)/build/ M=$(CURDIR) MO="$(CURDIR)/$(BUILDDIR)" modules
 
 clean:
-	make -C /lib/modules/$(shell uname -r)/build/ M=$(CURDIR) MO="$(CURDIR)/build" clean
-	rm -r build/
+	make -C /lib/modules/$(shell uname -r)/build/ M=$(CURDIR) MO="$(CURDIR)/$(BUILDDIR)" clean
+	rm -fr build/

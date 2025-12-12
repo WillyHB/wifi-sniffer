@@ -121,6 +121,20 @@ int main() {
 				goto exit_loop;
 		}
 
+		draw_ui(ctx);
+		
+		for (size_t i = 0; i < ctx->aps_count; i++) {
+			if (time(NULL) - ctx->aps[i].last_seen > 30) {
+				for (size_t j = i+1; j < ctx->aps_count; j++) {
+					ctx->aps[j-1] = ctx->aps[j];
+				}
+				if (ctx->scroll >= ctx->aps_count) ctx->scroll--;
+				if (ctx->aps_count > 0) ctx->aps_count--;
+
+				i--;
+			}
+		}
+
 		if (!paused) {
 			int ret = nl_recvmsgs_default(sock);
 
@@ -132,20 +146,6 @@ int main() {
 			mvprintw(0, 0,"PAUSED");
 			refresh();
 		}
-		
-		for (size_t i = 0; i < ctx->aps_count; i++) {
-			if (time(NULL) - ctx->aps[i].last_seen > 30) {
-				for (size_t j = i+1; j < ctx->aps_count; j++) {
-					ctx->aps[j] = ctx->aps[j-1];
-				}
-				if (ctx->scroll >= ctx->aps_count) ctx->scroll--;
-
-				ctx->aps_count--;
-				i--;
-			}
-		}
-
-		draw_ui(ctx);
 
 		if (hopping && hop_timer-- <= 0) {
 			hop_timer = HOP_TIME;
@@ -218,19 +218,18 @@ void handle_wifi_info(struct ctx *ctx, struct hdr_info *info, struct radiotap_in
 				ap->col_pair = cur_col+1;
 				cur_col = (cur_col+1) % COLORS;
 			}
-		}
+			if (info->frame_st == M_BEACON) {
+				ap->last_seen = time(NULL);
+				ap->beacons++;
+				uint8_t flag = 0;
+				for (int i = 0; i < ap->freq_num; i++) {
+					if (ap->channel_freqs[i] == rt_info->channel_freq) flag = 1;
+				}
+				if (flag == 0) ap->channel_freqs[ap->freq_num++] = rt_info->channel_freq;
 
-		if (info->frame_st == M_BEACON) {
-			ap->last_seen = time(NULL);
-			ap->beacons++;
-			uint8_t flag = 0;
-			for (int i = 0; i < ap->freq_num; i++) {
-				if (ap->channel_freqs[i] == rt_info->channel_freq) flag = 1;
+				iter_packet_ies(ap, &ctx->packet_buf[ctx->packet_buf_index], body, body_len);
+				return;
 			}
-			if (flag == 0) ap->channel_freqs[ap->freq_num++] = rt_info->channel_freq;
-
-			iter_packet_ies(ap, &ctx->packet_buf[ctx->packet_buf_index], body, body_len);
-			return;
 		} else if (info->frame_st == M_ACTION || info->frame_st == M_ACTION_NOACK) {
 			ctx->packet_buf[ctx->packet_buf_index].action.cat = body[0];
 			ctx->packet_buf[ctx->packet_buf_index].action.code = body[1];
