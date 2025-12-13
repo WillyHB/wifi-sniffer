@@ -127,6 +127,7 @@ void draw_usage_win(struct ctx *ctx) {
 	mvwprintw(ctx->usage_win,4,1, "(J/K) Top/Bottom AP List");
 	mvwprintw(ctx->usage_win,5,1, "(h/l) Scroll AP Detail");
 	mvwprintw(ctx->usage_win,6,1, "(H/L) Scroll ALL AP Detail");
+	mvwprintw(ctx->usage_win,7,1, "(q/Q) Quit");
 	box(ctx->usage_win,0,0);
 }
 

@@ -36,7 +36,7 @@ int sniffer_init(void) {
 	}
 
 	rtnl_lock();
-	int ret = netdev_rx_handler_register(real_dev, mywifi_rx_handler, /*mydev*/ NULL);
+	int ret = netdev_rx_handler_register(real_dev, sniffer_rx_handler, /*mydev*/ NULL);
 	rtnl_unlock();
 
 	if (ret) {
@@ -104,13 +104,10 @@ enum FRAME_DIRECTION parse_fromtods(struct ieee80211_hdr *hdr, u8 tods, u8 fromd
 	return 0;
 }
 
-rx_handler_result_t mywifi_rx_handler(struct sk_buff **pskb) {
+rx_handler_result_t sniffer_rx_handler(struct sk_buff **pskb) {
 	struct sk_buff *skb = *pskb;
-	if (skb_linearize(skb) != 0) return RX_HANDLER_PASS;
-
 	struct hdr_info hdr_info;
 	struct radiotap_info rt_info;
-
 	struct ieee80211_radiotap_header *rt_hdr;
 	struct ieee80211_hdr *hdr;
 	u16 fc;

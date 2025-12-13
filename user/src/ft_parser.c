@@ -18,8 +18,6 @@ const char *m_frame_to_string(MANAGEMENT_TYPE t) {
 		case M_REASSOCIATION_RESPONSE: return "REASSOCIATION RESPONSE";
 		case M_PROBE_RESPONSE: return "PROBE RESPONSE";
 		case M_TIMING_ADVERTISEMENT: return "TIMING ADVERTISEMENT";
-		case M_RESERVED2:
-		case M_RESERVED1: return "MANAGEMENT RESERVED";
 		case M_ATIM: return "ATIM";
 		case M_ACTION_NOACK: return "NO ACK";
 		case M_BEACON: return "BEACON";
@@ -33,8 +31,6 @@ const char *m_frame_to_string(MANAGEMENT_TYPE t) {
 }
 const char *c_frame_to_string(CONTROL_TYPE t) {
 	switch (t) {
-		case C_RESERVED1:
-		case C_RESERVED2: return "CONTROL RESERVED";
 		case C_TACK: return "TACK";
 		case C_TRIGGER: return "TRIGGER";
 		case CF_END: return "CF-END";
@@ -59,7 +55,6 @@ const char *d_frame_to_string(DATA_TYPE t) {
 		case D_NULL: return "NULL DATA";
 		case D_QOS_DATA: return "QoS DATA";
 		case D_QOS_NULL: return "QoS NULL DATA";
-		case D_RESERVED: return "RESERVED DATA";
 	}
 	return "UNKNOWN";
 }
@@ -88,8 +83,6 @@ uint8_t mgmt_fixed_params(MANAGEMENT_TYPE frame_st) {
 		case M_BEACON:
 		case M_TIMING_ADVERTISEMENT:
 		case M_PROBE_RESPONSE: return 12;
-		case M_RESERVED1:
-		case M_RESERVED2:
 		case M_ACTION:
 		case M_ACTION_NOACK:
 		case M_DISASSOCIATION:

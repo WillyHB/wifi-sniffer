@@ -38,7 +38,7 @@ struct nl_sock *init_netlink_socket(struct ctx *ctx) {
 		return NULL;
 	}
 	
-	int mcgrp = genl_ctrl_resolve_grp(sock, WIFI_FAMILY_NAME, WIFI_MCGRP_NAME);
+	int mcgrp = genl_ctrl_resolve_grp(sock, SNIFFER_FAMILY_NAME, SNIFFER_MCGRP_NAME);
 	if (mcgrp < 0) {
 		fprintf(stderr, "Resolving netlink family failed\n");
 		nl_socket_free(sock);
@@ -69,7 +69,7 @@ int main() {
 		fprintf(stderr, "Allocating ctx failed");
 		return -1;
 	}
-	struct nl_sock *sock = init_netlink_socket(ctx) ;
+	struct nl_sock *sock = init_netlink_socket(ctx);
 	channel_init("mon0");
 
 	uint8_t paused = 0;
@@ -116,7 +116,7 @@ int main() {
 			case '\t':
 				hopping = !hopping;
 				break;
-
+			case 'Q':
 			case 'q':
 				goto exit_loop;
 		}
@@ -164,20 +164,20 @@ exit_loop:
 static int frame_handler(struct nl_msg *msg, void *arg) {
 	struct nlmsghdr *hdr = nlmsg_hdr(msg);
 	struct genlmsghdr *ghdr = nlmsg_data(hdr);
-	struct nlattr *attrs[WIFI_ATTR_MAX+1];
-	nla_parse(attrs, WIFI_ATTR_MAX, genlmsg_attrdata(ghdr, 0), genlmsg_attrlen(ghdr, 0), NULL);
+	struct nlattr *attrs[SNIFFER_ATTR_MAX+1];
+	nla_parse(attrs, SNIFFER_ATTR_MAX, genlmsg_attrdata(ghdr, 0), genlmsg_attrlen(ghdr, 0), NULL);
 
-	struct hdr_info *info = nla_data(attrs[WIFI_ATTR_HEADER]);
-	struct radiotap_info *rt_info = nla_data(attrs[WIFI_ATTR_RADIOTAP]);
-	uint8_t *body = nla_data(attrs[WIFI_ATTR_BODY]);
-	int body_len = nla_len(attrs[WIFI_ATTR_BODY]);
+	struct hdr_info *info = nla_data(attrs[SNIFFER_ATTR_HEADER]);
+	struct radiotap_info *rt_info = nla_data(attrs[SNIFFER_ATTR_RADIOTAP]);
+	uint8_t *body = nla_data(attrs[SNIFFER_ATTR_BODY]);
+	int body_len = nla_len(attrs[SNIFFER_ATTR_BODY]);
 	if (body_len < 0 || body == NULL || info == NULL || rt_info == NULL) return NL_OK;
-	handle_wifi_info(arg, info, rt_info, body, body_len);
+	handle_frame_info(arg, info, rt_info, body, body_len);
 
 	return NL_OK;
 }
 
-void handle_wifi_info(struct ctx *ctx, struct hdr_info *info, struct radiotap_info *rt_info, uint8_t *body, size_t body_len) {
+void handle_frame_info(struct ctx *ctx, struct hdr_info *info, struct radiotap_info *rt_info, uint8_t *body, size_t body_len) {
 	if (info == NULL || rt_info == NULL || body == NULL) return;
 
 	ctx->packet_buf[ctx->packet_buf_index] = (struct packet_info){.hdr = *info, .rt = *rt_info, .action = {0}};
@@ -218,6 +218,9 @@ void handle_wifi_info(struct ctx *ctx, struct hdr_info *info, struct radiotap_in
 				ap->col_pair = cur_col+1;
 				cur_col = (cur_col+1) % COLORS;
 			}
+
+			iter_packet_ies(ap, &ctx->packet_buf[ctx->packet_buf_index], body, body_len);
+
 			if (info->frame_st == M_BEACON) {
 				ap->last_seen = time(NULL);
 				ap->beacons++;
@@ -226,10 +229,9 @@ void handle_wifi_info(struct ctx *ctx, struct hdr_info *info, struct radiotap_in
 					if (ap->channel_freqs[i] == rt_info->channel_freq) flag = 1;
 				}
 				if (flag == 0) ap->channel_freqs[ap->freq_num++] = rt_info->channel_freq;
-
-				iter_packet_ies(ap, &ctx->packet_buf[ctx->packet_buf_index], body, body_len);
 				return;
 			}
+
 		} else if (info->frame_st == M_ACTION || info->frame_st == M_ACTION_NOACK) {
 			ctx->packet_buf[ctx->packet_buf_index].action.cat = body[0];
 			ctx->packet_buf[ctx->packet_buf_index].action.code = body[1];
