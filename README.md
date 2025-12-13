@@ -2,6 +2,13 @@
 ## Overview
 A linux kernel module + userspace program which captures and parses 802.11 Wifi Frames, displaying parsed data with ncurses in a simple dashboard. 
 
+## Screenshots
+<img width="2880" height="1800" alt="sniffer" src="https://github.com/user-attachments/assets/54a724d0-0abe-4a07-8076-f790f823f4a5" />
+
+<img width="2880" height="1800" alt="sniffer2" src="https://github.com/user-attachments/assets/c2ff5541-6b62-45d4-ae29-8fd7ab53280f" />
+
+<img width="2880" height="1800" alt="sniffer3" src="https://github.com/user-attachments/assets/b5f88a34-c201-4078-8746-1f0d45ba1ebf" />
+
 ## Features
 - Captures and parses radiotap + 802.11 MAC frames via an RX handler
 - Parses frame types & subtypes, mac addresses, ToDs/FromDs, retries and management frame ies
@@ -29,6 +36,7 @@ Finally all the data is sent to my `send_to_userspace` function.
 
 #### send_to_userspace
 This functions purpose is to allocate and send the generic netlink message. It allocates an `skb`, allocates the generic netlink message, attaches the generic netlink header and then attaches our three attributes: the radiotap header, 802.11 header and 802.11 frame body. We call `genlmsg_end` to finalise the creation of the genl message, and then multicast it through our `SNIFFER_MCGRP_FRAMES` multicast group. 
+
 
 ### Userspace Program
 The userspace program is where the main parsing of the 802.11 frame occurs + displaying the data to the user. In the main function we firstly initialise the ncurses ui, creates a `struct ctx` which holds context information for our program like an AP buffer, Packet Buffer and general settings - and then initialises the netlink socket we will use to get the information from the kernel module multicast. For the netlink handling I use the libnl library. I chose libnl since it's a professional and stable library which eased the handling of the netlink socket. My initialisation function is simple: It allocates space for the socket, connects it as a general netlink socket, gets the multicast group id from the family name + multicast group name, and then adds a `membership` to this multicast group to the socket.It then adds my frame_handler as a callback with the `struct ctx` as an argument for when the socket receives data, and then disables sequence checking and makes the receive function nonblocking, so it doesn't block my ui and input handling.
@@ -85,4 +93,5 @@ Archive: *https://web.archive.org/web/20251213173451/https://mrncciew.com/2014/1
 
 #### Libnl Docs
 Archive: *https://web.archive.org/web/20251213175021/https://www.infradead.org/~tgr/libnl/doc/core.html#_message_format*
+
 
