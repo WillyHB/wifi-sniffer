@@ -12,6 +12,8 @@ A linux kernel module + userspace program which captures and parses 802.11 Wifi 
 ## Features
 - Captures and parses radiotap + 802.11 MAC frames via an RX handler
 - Parses frame types & subtypes, mac addresses, ToDs/FromDs, retries and management frame ies
+- Simple UI dashboard with Packet View, AP View and General Stats View
+- For each AP: beacons, rx, tx, retry counters + last seen, ssid and channel frequency trackers
 
 ## How it Works TLDR
 Kernel Module Intercepts rx packets through a virtual monitor interface, parses and sends radiotap header + 80211 header + 80211 frame body to a userspace program
@@ -93,5 +95,6 @@ Archive: *https://web.archive.org/web/20251213173451/https://mrncciew.com/2014/1
 
 #### Libnl Docs
 Archive: *https://web.archive.org/web/20251213175021/https://www.infradead.org/~tgr/libnl/doc/core.html#_message_format*
+
 
 
