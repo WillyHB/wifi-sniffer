@@ -1,7 +1,17 @@
-# Wifi Sniffer
+# WiFi Sniffer
 ## Overview
-A linux kernel module + userspace program which captures and parses 802.11 Wifi Frames, displaying parsed data with ncurses in a simple dashboard. 
+A linux kernel module + userspace program which captures and parses 802.11 WiFi Frames, displaying parsed data with ncurses in a simple dashboard. 
 
+## Table Of Content
+- Screenshots
+- Features
+- TLDR
+- Technical Program Flow
+- Build & Run Instructions
+- Possible Improvements
+- What I learnt
+- Resources
+  
 ## Screenshots
 <img width="2880" height="1800" alt="sniffer" src="https://github.com/user-attachments/assets/54a724d0-0abe-4a07-8076-f790f823f4a5" />
 
@@ -13,10 +23,10 @@ A linux kernel module + userspace program which captures and parses 802.11 Wifi 
 - Captures and parses radiotap + 802.11 MAC frames via an RX handler
 - Parses frame types & subtypes, mac addresses, ToDs/FromDs, retries and management frame ies
 - Simple UI dashboard with Packet View, AP View and General Stats View
-- For each AP: beacons, rx, tx, retry counters + last seen, ssid and channel frequency trackers
+- For each AP: beacons, RX, TX, retry counters + last seen, ssid and channel frequency trackers
 
 ## How it Works TLDR
-Kernel Module Intercepts rx packets through a virtual monitor interface, parses and sends radiotap header + 80211 header + 80211 frame body to a userspace program
+Kernel Module Intercepts RX packets through a virtual monitor interface, parses and sends radiotap header + 80211 header + 80211 frame body to a userspace program
 Userspace program parses header and displays packets and APs in a nice format.
 
 ## Technical Program Flow
@@ -49,11 +59,10 @@ In the main loop my program checks for input and modifies local variables accord
 My frame handler is simple. It receives `struct nl_msg` and `void *arg`, which holds the ctx, from the libnl library. It gets the netlink header, then generic netlink header and then parses the attributes using `nla_parse` into an array of `struct nlattr`. We then store the data for each attribute in structs: `struct hdr_info` for `SNIFFER_ATTR_HEADER`, `struct rt_info` for `SNIFFER_ATTR_RADIOTAP` and a `uint8_t *body` for `SNIFFER_ATTR_BODY`. For the body we also get the len using the `nla_len` function. It then passes all of this data to my handle_frame_info function.
 
 #### handle_frame_info
-This is the main parsing function. It takes incoming packets and extracts APs and stores them in our `struct ap` array of APs, and general packets in our `struct packet_info` packet_buf array. It increments the packet count, increments rx,tx and retries for each AP currently in the AP array and performes packet frame-type-specific parsing: 
+This is the main parsing function. It takes incoming packets and extracts APs and stores them in our `struct ap` array of APs, and general packets in our `struct packet_info` packet_buf array. It increments the packet count, increments RX, TX and retries for each AP currently in the AP array and performs packet frame-type-specific parsing: 
 If it's a `BEACON` or `PROBE_RESPONSE` for example we iterate the frame body for IEs which hold various data - the only data we're interested in is the APs SSID (WiFi name). 
 If it's just a `BEACON` we increase the APs beacon count and take note of the frequency the beacon was sent at, so we know what channel the AP is on.
 If it's an `ACTION` or `ACTION_NO_ACK` frame, we set the data in the `struct action` in the packet_info struct with the category and code of the action frame. A lot of action frames will come up as `UNKNOWN` in the sniffer - I didn't implement most action frames, mainly since I was unsure of which to add, and a lot of them are vendor specific and I couldn't find solid resources on it.
- with the category and code of the action frame. A lot of action frames will come up as `UNKNOWN` in the sniffer - I didn't implement most action frames, mainly since I was unsure of which to add, and a lot of them are vendor specific and I couldn't find solid resources on it.
 
 Finally, if it's not a beacon packet (Since they'd crowd the packet window) we add the packet to the packet_buffer which gets displayed to the user.
 
@@ -61,6 +70,7 @@ Finally, if it's not a beacon packet (Since they'd crowd the packet window) we a
 This function was a shell script until right at the end of the development, when I decided to put it in the main c program. It uses the `nl80211` netlink interface, sending a generic netlink message to the nl80211 family with the `SET_WIPHY` command. As attributes we send firstly the frequencies we jump to, which are converted from an array of channels I define that the program jumps between using my `channel_to_freq` function. Then it also send the index of the interface where we want to switch the channel, which we get with if_nametoindex (`mon0` since that's our monitoring interface). We wait to receive an ACK from nl80211 before we free the message and return. 
 
 ## How to run/build
+**⚠️ This project is for educational purposes only. Use only on networks you own or have permission to monitor.**
 1. Clone the git repo
 2. Run `make` in the project root (builds the kernel module + userspace program)
 3. Run `sudo ./run.sh` it will load the kernel module, takes down `wlo1` (That's what my main wifi interface is called, if you want to use the code yourself rename it in the `sniffer_start.sh` and `sniffer_stop.sh` files), brings up a new `mon0` monitor virtual interface and then opens the userspace program
@@ -68,9 +78,9 @@ This function was a shell script until right at the end of the development, when
 5. Run `make clean` in the project root to clean up all build files
 
 ## Possible Improvements
-- Limited data available to sniff on my machine - I believe my laptop wificard removes rssi data and a lot of data packets don't show up. I wanted to test with a usb wifi antenna but never got around to getting one.
+- Limited data available to sniff on my machine - I believe my laptop wifi card removes rssi data and a lot of data packets don't show up. I wanted to test with a usb wifi antenna but never got around to getting one.
 - Uses my laptops main physical wifi card - would be nice to work with a second one so I don't have to bring down wifi connectivity while the program runs
-- Program is missing a lot of detail in the analysis - not really a limitation since this was more an experiement than actually building a professional program.
+- Program is missing a lot of detail in the analysis - not really a limitation since this was more an experiment than actually building a professional program.
 - The channel_hopping code should probably be in another thread since nl80211 could take some time, however I have limited experience with multithreading in C and didn't feel this was the right time to experiment.
 
 ## What I learnt
@@ -95,6 +105,7 @@ Archive: *https://web.archive.org/web/20251213173451/https://mrncciew.com/2014/1
 
 #### Libnl Docs
 Archive: *https://web.archive.org/web/20251213175021/https://www.infradead.org/~tgr/libnl/doc/core.html#_message_format*
+
 
 
 
