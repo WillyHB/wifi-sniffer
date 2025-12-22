@@ -235,6 +235,8 @@ void handle_frame_info(struct ctx *ctx, struct hdr_info *info, struct radiotap_i
 		} else if (info->frame_st == M_ACTION || info->frame_st == M_ACTION_NOACK) {
 			ctx->packet_buf[ctx->packet_buf_index].action.cat = body[0];
 			ctx->packet_buf[ctx->packet_buf_index].action.code = body[1];
+		} else if (info->frame_st == M_PROBE_REQUEST) {
+			return;
 		}
 	}
 

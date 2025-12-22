@@ -7,6 +7,7 @@ all:
 		do $(MAKE) -C $$d; \
 	done
 clean:
+	rm compile_commands.json
 	for d in $(SUBDIRS); \
 		do $(MAKE) -C $$d clean; \
 	done
